@@ -25,8 +25,8 @@ contact_subgraph = np.loadtxt("../data/ContactSubgraphMatrix.csv", delimiter=","
 
 
 # z_scores = np.loadtxt('relu_z_scores_2000_samples.csv', delimiter=',')
-"""
 
+#Generating predicted O matrices
 O_samples = []
 
 sample_count = 1000
@@ -37,7 +37,7 @@ for i in range(sample_count):
 	O_samples.append(np.matrix(scm_optim.predict_O_ReLU(B, X, contact_subgraph, reg_factor=0.1)))
 	# O_samples.append(scm_optim.getRuleMatrix(B_samples[i], X, contact_subgraph, 0.225))
 
-# #Initializing O mean and variance matrices
+#Initializing O mean and variance matrices
 mean_O = np.zeros(O_samples[0].shape)
 var_O = np.zeros(O_samples[0].shape)
 
@@ -67,10 +67,10 @@ sd_O = np.sqrt(var_O)
 # print("Z-score: ")
 # print(z_scores)
 
-np.savetxt("regularized_ReLU_meanO_on_trueB_2000_samples.csv", mean_O, delimiter=",")
-np.savetxt("regularized_ReLU_sdO_on_trueB_2000_samples.csv", sd_O, delimiter=",")
+np.savetxt("../statistics/regularized_ReLU_meanO_on_trueB_2000_samples.csv", mean_O, delimiter=",")
+np.savetxt("../statistics/regularized_ReLU_sdO_on_trueB_2000_samples.csv", sd_O, delimiter=",")
 
-"""
+
 
 linear_O_test_sd = np.loadtxt("linear_gd_sdO_on_trueB_2000_samples.csv", delimiter=",")
 linear_O_sd = np.loadtxt("/Users/ryanlee/Documents/Projects/scm-research/src/linear_gd_sdO_on_trueB_2000_samples.csv", delimiter=",")
