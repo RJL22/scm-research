@@ -5,7 +5,7 @@ from numpy import linalg
 import samp
 
 
-# Compute the gradient of the objective function with respect to O, applying M_B and M_O if provided
+# Compute the gradient of the linear objective function with respect to O, applying M_B and M_O if provided
 def compute_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     error = B - X @ O @ X.T
     
@@ -98,11 +98,7 @@ def compute_rectified_tanh_gradient(B, X, O, M_B=None, M_O=None, regularization_
 
 
 
-
-
-
-
-def adam_optimizer(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=50000, tol=1e-5):
+def adam_optimizer(B, X, O_init, gradient_func, grad_norms=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=100000, tol=1e-4):
     """Perform optimization using Adam."""
     if O_init is None:
         O = initialize_O(X)
@@ -115,7 +111,11 @@ def adam_optimizer(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=
 
     for i in range(max_iters):
         t += 1
-        gradient = compute_gradient(B, X, O, M_B, M_O, regularization_factor=regularization_factor)
+        gradient = gradient_func(B, X, O, M_B, M_O, regularization_factor=regularization_factor)
+
+        #For measuring recording gradient norm over time
+        if grad_norms != None and i % 100 == 0:
+            grad_norms.append(np.linalg.norm(gradient))
         
         # Check for convergence
         if np.linalg.norm(gradient) < tol:
@@ -137,193 +137,14 @@ def adam_optimizer(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=
         # O = np.clip(O, 0, 1)
     
     return O
-
-#CHange tol ()
-# Plot weight of the rule vs the error of the rule (for both versions)
-# Check other nonlinearities to see if there are generic rules (rules that are found in all models)
-def adam_optimizer_ReLU(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=50000, tol=1e-5):
-    """Perform optimization using Adam."""
-    if O_init is None:
-        O = initialize_O(X)
-    else:
-        O = copy.copy(O_init)
-
-    m = np.zeros_like(O)  # Initialize 1st moment vector
-    v = np.zeros_like(O)  # Initialize 2nd moment vector
-    t = 0  # Initialize timestep
-
-    for i in range(max_iters):
-        t += 1
-        gradient = compute_ReLU_gradient(B, X, O, M_B, M_O)
-        
-        # Check for convergence
-        if np.linalg.norm(gradient) < tol:
-            print(f"Convergence reached at iteration {i}")
-            break
-
-        # Apply Adam updates
-        m = beta1 * m + (1 - beta1) * gradient
-        v = beta2 * v + (1 - beta2) * (gradient ** 2)
-        
-        # Bias-corrected moment estimates
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-        
-        # Compute the new O with updates
-        O = O - learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-        
-        # Project O values to the range [0, 1] # ! ensure positivity
-        # O = np.clip(O, 0, 1)
-    
-    return O
-
-# Check other nonlinearities to see if there are generic rules (rules that are found in all models)
-def adam_optimizer_sigmoid(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=50000, tol=1e-3):
-    """Perform optimization using Adam."""
-    if O_init is None:
-        O = initialize_O(X)
-    else:
-        O = copy.copy(O_init)
-
-    m = np.zeros_like(O)  # Initialize 1st moment vector
-    v = np.zeros_like(O)  # Initialize 2nd moment vector
-    t = 0  # Initialize timestep
-    gradient = 0 # Initializing gradient
-
-    for i in range(max_iters):
-        t += 1
-        gradient = compute_sigmoid_gradient(B, X, O, M_B, M_O)
-        
-        # Check for convergence
-        if np.linalg.norm(gradient) < tol:
-            print(f"Convergence reached at iteration {i}")
-            break
-
-        # Apply Adam updates
-        m = beta1 * m + (1 - beta1) * gradient
-        v = beta2 * v + (1 - beta2) * (gradient ** 2)
-        
-        # Bias-corrected moment estimates
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-        
-        # Compute the new O with updates
-        O = O - learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-        
-        # Project O values to the range [0, 1] # ! ensure positivity
-        # O = np.clip(O, 0, 1)
-    
-    return O
-
-def adam_optimizer_tanh(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=50000, tol=1e-3):
-    """Perform optimization using Adam."""
-    if O_init is None:
-        O = initialize_O(X)
-    else:
-        O = copy.copy(O_init)
-
-    m = np.zeros_like(O)  # Initialize 1st moment vector
-    v = np.zeros_like(O)  # Initialize 2nd moment vector
-    t = 0  # Initialize timestep
-    gradient = 0 # Initializing gradient
-
-    for i in range(max_iters):
-        t += 1
-        gradient = compute_tanh_gradient(B, X, O, M_B, M_O)
-        
-        # Check for convergence
-        if np.linalg.norm(gradient) < tol:
-            print(f"Convergence reached at iteration {i}")
-            break
-
-        # Apply Adam updates
-        m = beta1 * m + (1 - beta1) * gradient
-        v = beta2 * v + (1 - beta2) * (gradient ** 2)
-        
-        # Bias-corrected moment estimates
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-        
-        # Compute the new O with updates
-        O = O - learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-        
-        # Project O values to the range [0, 1] # ! ensure positivity
-        # O = np.clip(O, 0, 1)
-    
-    return O
-
-def adam_optimizer_rectified_tanh(B, X, O_init=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=50000, tol=1e-3):
-    print("Here")
-    """Perform optimization using Adam."""
-    if O_init is None:
-        O = initialize_O(X)
-    else:
-        O = copy.copy(O_init)
-
-    m = np.zeros_like(O)  # Initialize 1st moment vector
-    v = np.zeros_like(O)  # Initialize 2nd moment vector
-    t = 0  # Initialize timestep
-    gradient = 0 # Initializing gradient
-
-    for i in range(max_iters):
-        t += 1
-        gradient = compute_rectified_tanh_gradient(B, X, O, M_B, M_O)
-        
-        # Check for convergence
-        if np.linalg.norm(gradient) < tol:
-            print(f"Convergence reached at iteration {i}")
-            break
-
-        # Apply Adam updates
-        m = beta1 * m + (1 - beta1) * gradient
-        v = beta2 * v + (1 - beta2) * (gradient ** 2)
-        
-        # Bias-corrected moment estimates
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-        
-        # Compute the new O with updates
-        O = O - learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-        
-        # Project O values to the range [0, 1] # ! ensure positivity
-        # O = np.clip(O, 0, 1)
-    
-    return O
-
-
 
 
 #Uses the adam optimizer to find O matrix that minimizes loss. Regularization factor is currently hard-coded to 0.
-def predict_O(B, X, C):
+def predict_O(B, X, C, gradient_func, grad_norms=None):
 	dim = X.shape[1]
 	O = samp.initialize_O(dim)
-	O = adam_optimizer(B, X, O, M_B=C, regularization_factor=0.0)
+	O = adam_optimizer(B, X, O, gradient_func, grad_norms, M_B=C, regularization_factor=0.0)
 	return O
-
-
-def predict_O_ReLU(B, X, C, reg_factor=0):
-    dim = X.shape[1]
-    O = samp.initialize_O(dim)
-    O = adam_optimizer_ReLU(B, X, O, M_B=C, regularization_factor=reg_factor)
-    return O
-
-def predict_O_sigmoid(B, X, C, reg_factor=0):
-    dim = X.shape[1]
-    O = samp.initialize_O(dim)
-    O = adam_optimizer_sigmoid(B, X, O, M_B=C, regularization_factor=reg_factor)
-    return O
-
-def predict_O_tanh(B, X, C, reg_factor=0):
-    dim = X.shape[1]
-    O = samp.initialize_O(dim)
-    O = adam_optimizer_tanh(B, X, O, M_B=C, regularization_factor=reg_factor)
-    return O
-
-def predict_O_rectified_tanh(B, X, C, reg_factor=0):
-    dim = X.shape[1]
-    O = samp.initialize_O(dim)
-    O = adam_optimizer_rectified_tanh(B, X, O, M_B=C, regularization_factor=reg_factor)
-    return O
 
 #Original O prediction from PNAS paper
 def getRuleMatrix(B, X, C, alpha):
