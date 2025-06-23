@@ -19,7 +19,7 @@ def compute_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     if M_O is not None:
         gradient = M_O * gradient
     
-    return gradient + (regularization_factor * O)
+    return gradient + (regularization_factor * np.abs(O))
 
 #Compute the gradient of the ReLU objective function with respect to O, applying M_B and M_O if provided
 def compute_ReLU_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
@@ -39,7 +39,7 @@ def compute_ReLU_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     if M_O is not None:
         gradient = M_O * gradient
 
-    return gradient + (regularization_factor * O)
+    return gradient + (regularization_factor * np.abs(O))
 
 #Function for computing sigmoid of a matrix elementwise
 def mat_sigmoid(M):
@@ -60,7 +60,7 @@ def compute_sigmoid_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=
     if M_O is not None:
         gradient = M_O * gradient
 
-    return gradient + (regularization_factor * O)
+    return gradient + (regularization_factor * np.abs(O))
 
 def compute_tanh_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     Z = X @ O @ X.T
@@ -76,7 +76,7 @@ def compute_tanh_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     if M_O is not None:
         gradient = M_O * gradient
 
-    return gradient + (regularization_factor * O)
+    return gradient + (regularization_factor * np.abs(O))
 
 def compute_rectified_tanh_gradient(B, X, O, M_B=None, M_O=None, regularization_factor=0):
     Z = X @ O @ X.T
@@ -93,12 +93,12 @@ def compute_rectified_tanh_gradient(B, X, O, M_B=None, M_O=None, regularization_
     if M_O is not None:
         gradient = M_O * gradient
 
-    return gradient + (regularization_factor * O)
+    return gradient + (regularization_factor * np.abs(O))
 
 
 
 
-def adam_optimizer(B, X, O_init, gradient_func, grad_norms=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=100000, tol=1e-4):
+def adam_optimizer(B, X, O_init, gradient_func, grad_norms=None, M_B=None, M_O=None, regularization_factor=0, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8, max_iters=100000, tol=1e-1):
     """Perform optimization using Adam."""
     if O_init is None:
         O = initialize_O(X)
@@ -114,9 +114,10 @@ def adam_optimizer(B, X, O_init, gradient_func, grad_norms=None, M_B=None, M_O=N
         gradient = gradient_func(B, X, O, M_B, M_O, regularization_factor=regularization_factor)
 
         #For measuring recording gradient norm over time
-        if grad_norms != None and i % 100 == 0:
+        if grad_norms != None and i >= 2000 and i % 100 == 0:
             grad_norms.append(np.linalg.norm(gradient))
         
+        print(np.linalg.norm(gradient))
         # Check for convergence
         if np.linalg.norm(gradient) < tol:
             print(f"Convergence reached at iteration {i}")
@@ -140,10 +141,10 @@ def adam_optimizer(B, X, O_init, gradient_func, grad_norms=None, M_B=None, M_O=N
 
 
 #Uses the adam optimizer to find O matrix that minimizes loss. Regularization factor is currently hard-coded to 0.
-def predict_O(B, X, C, gradient_func, grad_norms=None):
+def predict_O(B, X, C, gradient_func, grad_norms=None, regularization_factor=0):
 	dim = X.shape[1]
 	O = samp.initialize_O(dim)
-	O = adam_optimizer(B, X, O, gradient_func, grad_norms, M_B=C, regularization_factor=0.0)
+	O = adam_optimizer(B, X, O, gradient_func, grad_norms, M_B=C, regularization_factor=regularization_factor)
 	return O
 
 #Original O prediction from PNAS paper
